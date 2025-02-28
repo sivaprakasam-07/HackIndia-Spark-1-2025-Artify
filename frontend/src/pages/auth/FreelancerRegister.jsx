@@ -1,4 +1,77 @@
-<div className="max-w-2xl mx-auto my-12 px-4">
+import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useForm } from 'react-hook-form';
+import { motion } from 'framer-motion';
+import { FiGithub, FiLinkedin, FiUser, FiMail, FiLock, FiEye, FiEyeOff } from 'react-icons/fi';
+import { signInWithPopup, GithubAuthProvider, GoogleAuthProvider } from 'firebase/auth';
+import { auth } from '../../firebase';
+import { useAuth } from '../../contexts/AuthContext';
+
+const FreelancerRegister = () => {
+  const { register: registerUser, oauthLogin } = useAuth();
+  const navigate = useNavigate();
+  const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [step, setStep] = useState(1);
+
+  const { register: registerForm, handleSubmit, formState: { errors }, watch } = useForm();
+  const password = watch('password', '');
+
+  const onSubmit = async (data) => {
+    if (step < 3) {
+      setStep(step + 1);
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      // Combine all form data
+      const userData = {
+        name: data.name,
+        email: data.email,
+        password: data.password,
+        title: data.title,
+        skills: data.skills.split(',').map(skill => skill.trim()),
+        hourlyRate: data.hourlyRate,
+        experience: data.experience,
+        bio: data.bio,
+        github: data.github,
+        linkedin: data.linkedin,
+        portfolio: data.portfolio
+      };
+
+      const result = await registerUser(userData, 'freelancer');
+      if (result.success) {
+        navigate('/dashboard');
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleOAuthRegister = (provider) => {
+    setIsLoading(true);
+    let authProvider;
+    if (provider === 'github') {
+      authProvider = new GithubAuthProvider();
+    } else if (provider === 'google') {
+      authProvider = new GoogleAuthProvider();
+    }
+
+    signInWithPopup(auth, authProvider)
+      .then((result) => {
+        console.log(result.user);
+        setIsLoading(false);
+        navigate('/dashboard');
+      })
+      .catch((error) => {
+        console.error(error);
+        setIsLoading(false);
+      });
+  };
+
+  return (
+    <div className="max-w-2xl mx-auto my-12 px-4">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -6,14 +79,14 @@
         className="card p-8"
       >
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold">Create a Business Account</h1>
+          <h1 className="text-2xl font-bold">Create a Freelancer Account</h1>
           <p className="text-gray-600 dark:text-gray-400 mt-2">
-            Join Mindlancer and start hiring talented developers for your projects
+            Join Mindlancer and start finding work that matches your skills
           </p>
         </div>
         
         {/* Step indicator */}
-        <div className="flex items-center justify-center mb-8">
+        <div className="flex items-center justify-between mb-8">
           <div className="flex items-center">
             <div className={`h-8 w-8 rounded-full flex items-center justify-center ${step >= 1 ? 'bg-primary-600 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-500'}`}>
               1
@@ -24,6 +97,12 @@
             <div className={`h-8 w-8 rounded-full flex items-center justify-center ${step >= 2 ? 'bg-primary-600 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-500'}`}>
               2
             </div>
+            <div className={`h-1 w-12 ${step >= 3 ? 'bg-primary-600' : 'bg-gray-200 dark:bg-gray-700'}`}></div>
+          </div>
+          <div className="flex items-center">
+            <div className={`h-8 w-8 rounded-full flex items-center justify-center ${step >= 3 ? 'bg-primary-600 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-500'}`}>
+              3
+            </div>
           </div>
         </div>
         
@@ -31,11 +110,19 @@
           <>
             <div className="space-y-4 mb-6">
               <button
-                onClick={() => handleOAuthRegister('linkedin')}
+                onClick={() => handleOAuthRegister('github')}
                 className="w-full flex items-center justify-center gap-2 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2 hover:bg-gray-50 dark:hover:bg-dark-100 transition-colors"
               >
-                <FiLinkedin className="h-5 w-5" />
-                <span>Continue with LinkedIn</span>
+                <FiGithub className="h-5 w-5" />
+                <span>Continue with GitHub</span>
+              </button>
+              
+              <button
+                onClick={() => handleOAuthRegister('google')}
+                className="w-full flex items-center justify-center gap-2 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2 hover:bg-gray-50 dark:hover:bg-dark-100 transition-colors"
+              >
+                <FiUser className="h-5 w-5" />
+                <span>Continue with Google</span>
               </button>
             </div>
             
@@ -52,7 +139,7 @@
             <>
               <div>
                 <label htmlFor="name" className="block text-sm font-medium mb-1">
-                  Your Full Name
+                  Full Name
                 </label>
                 <div className="relative">
                   <input
@@ -73,14 +160,14 @@
               
               <div>
                 <label htmlFor="email" className="block text-sm font-medium mb-1">
-                  Work Email Address
+                  Email Address
                 </label>
                 <div className="relative">
                   <input
                     id="email"
                     type="email"
                     className={`input-field pl-10 ${errors.email ? 'border-red-500 dark:border-red-500' : ''}`}
-                    placeholder="you@company.com"
+                    placeholder="you@example.com"
                     {...registerForm('email', { 
                       required: 'Email is required',
                       pattern: {
@@ -155,124 +242,148 @@
           {step === 2 && (
             <>
               <div>
-                <label htmlFor="companyName" className="block text-sm font-medium mb-1">
-                  Company Name
+                <label htmlFor="title" className="block text-sm font-medium mb-1">
+                  Professional Title
                 </label>
-                <div className="relative">
-                  <input
-                    id="companyName"
-                    type="text"
-                    className={`input-field pl-10 ${errors.companyName ? 'border-red-500 dark:border-red-500' : ''}`}
-                    placeholder="Acme Inc."
-                    {...registerForm('companyName', { 
-                      required: 'Company name is required'
-                    })}
-                  />
-                  <FiBriefcase className="absolute left-3 top-3 text-gray-400" />
-                </div>
-                {errors.companyName && (
-                  <p className="mt-1 text-sm text-red-500">{errors.companyName.message}</p>
+                <input
+                  id="title"
+                  type="text"
+                  className={`input-field ${errors.title ? 'border-red-500 dark:border-red-500' : ''}`}
+                  placeholder="e.g. Full Stack Developer"
+                  {...registerForm('title', { 
+                    required: 'Professional title is required'
+                  })}
+                />
+                {errors.title && (
+                  <p className="mt-1 text-sm text-red-500">{errors.title.message}</p>
                 )}
               </div>
               
               <div>
-                <label htmlFor="industry" className="block text-sm font-medium mb-1">
-                  Industry
+                <label htmlFor="skills" className="block text-sm font-medium mb-1">
+                  Skills (comma separated)
+                </label>
+                <input
+                  id="skills"
+                  type="text"
+                  className={`input-field ${errors.skills ? 'border-red-500 dark:border-red-500' : ''}`}
+                  placeholder="e.g. React, Node.js, MongoDB"
+                  {...registerForm('skills', { 
+                    required: 'Skills are required'
+                  })}
+                />
+                {errors.skills && (
+                  <p className="mt-1 text-sm text-red-500">{errors.skills.message}</p>
+                )}
+              </div>
+              
+              <div>
+                <label htmlFor="hourlyRate" className="block text-sm font-medium mb-1">
+                  Hourly Rate (USD)
+                </label>
+                <input
+                  id="hourlyRate"
+                  type="number"
+                  className={`input-field ${errors.hourlyRate ? 'border-red-500 dark:border-red-500' : ''}`}
+                  placeholder="e.g. 50"
+                  {...registerForm('hourlyRate', { 
+                    required: 'Hourly rate is required',
+                    min: {
+                      value: 5,
+                      message: 'Minimum hourly rate is $5'
+                    }
+                  })}
+                />
+                {errors.hourlyRate && (
+                  <p className="mt-1 text-sm text-red-500">{errors.hourlyRate.message}</p>
+                )}
+              </div>
+              
+              <div>
+                <label htmlFor="experience" className="block text-sm font-medium mb-1">
+                  Years of Experience
                 </label>
                 <select
-                  id="industry"
-                  className={`input-field ${errors.industry ? 'border-red-500 dark:border-red-500' : ''}`}
-                  {...registerForm('industry', { 
-                    required: 'Industry is required'
+                  id="experience"
+                  className={`input-field ${errors.experience ? 'border-red-500 dark:border-red-500' : ''}`}
+                  {...registerForm('experience', { 
+                    required: 'Experience is required'
                   })}
                 >
-                  <option value="">Select industry</option>
-                  <option value="technology">Technology</option>
-                  <option value="finance">Finance</option>
-                  <option value="healthcare">Healthcare</option>
-                  <option value="education">Education</option>
-                  <option value="ecommerce">E-commerce</option>
-                  <option value="media">Media & Entertainment</option>
-                  <option value="manufacturing">Manufacturing</option>
-                  <option value="other">Other</option>
+                  <option value="">Select experience</option>
+                  <option value="0-1">Less than 1 year</option>
+                  <option value="1-3">1-3 years</option>
+                  <option value="3-5">3-5 years</option>
+                  <option value="5-10">5-10 years</option>
+                  <option value="10+">10+ years</option>
                 </select>
-                {errors.industry && (
-                  <p className="mt-1 text-sm text-red-500">{errors.industry.message}</p>
+                {errors.experience && (
+                  <p className="mt-1 text-sm text-red-500">{errors.experience.message}</p>
                 )}
               </div>
-              
+            </>
+          )}
+          
+          {step === 3 && (
+            <>
               <div>
-                <label htmlFor="companySize" className="block text-sm font-medium mb-1">
-                  Company Size
-                </label>
-                <select
-                  id="companySize"
-                  className={`input-field ${errors.companySize ? 'border-red-500 dark:border-red-500' : ''}`}
-                  {...registerForm('companySize', { 
-                    required: 'Company size is required'
-                  })}
-                >
-                  <option value="">Select company size</option>
-                  <option value="1-10">1-10 employees</option>
-                  <option value="11-50">11-50 employees</option>
-                  <option value="51-200">51-200 employees</option>
-                  <option value="201-500">201-500 employees</option>
-                  <option value="501-1000">501-1000 employees</option>
-                  <option value="1000+">1000+ employees</option>
-                </select>
-                {errors.companySize && (
-                  <p className="mt-1 text-sm text-red-500">{errors.companySize.message}</p>
-                )}
-              </div>
-              
-              <div>
-                <label htmlFor="website" className="block text-sm font-medium mb-1">
-                  Company Website (optional)
-                </label>
-                <div className="relative">
-                  <input
-                    id="website"
-                    type="text"
-                    className="input-field pl-10"
-                    placeholder="https://yourcompany.com"
-                    {...registerForm('website')}
-                  />
-                  <FiGlobe className="absolute left-3 top-3 text-gray-400" />
-                </div>
-              </div>
-              
-              <div>
-                <label htmlFor="description" className="block text-sm font-medium mb-1">
-                  Company Description
+                <label htmlFor="bio" className="block text-sm font-medium mb-1">
+                  Professional Bio
                 </label>
                 <textarea
-                  id="description"
+                  id="bio"
                   rows="4"
-                  className={`input-field ${errors.description ? 'border-red-500 dark:border-red-500' : ''}`}
-                  placeholder="Tell freelancers about your company and the types of projects you typically need help with"
-                  {...registerForm('description', { 
-                    required: 'Company description is required',
+                  className={`input-field ${errors.bio ? 'border-red-500 dark:border-red-500' : ''}`}
+                  placeholder="Tell clients about your background, experience, and why you're the best for the job"
+                  {...registerForm('bio', { 
+                    required: 'Bio is required',
                     minLength: {
-                      value: 50,
-                      message: 'Description should be at least 50 characters'
+                      value: 100,
+                      message: 'Bio should be at least 100 characters'
                     }
                   })}
                 ></textarea>
-                {errors.description && (
-                  <p className="mt-1 text-sm text-red-500">{errors.description.message}</p>
+                {errors.bio && (
+                  <p className="mt-1 text-sm text-red-500">{errors.bio.message}</p>
                 )}
+              </div>
+              
+              <div>
+                <label htmlFor="github" className="block text-sm font-medium mb-1">
+                  GitHub Profile URL (optional)
+                </label>
+                <input
+                  id="github"
+                  type="text"
+                  className="input-field"
+                  placeholder="https://github.com/yourusername"
+                  {...registerForm('github')}
+                />
               </div>
               
               <div>
                 <label htmlFor="linkedin" className="block text-sm font-medium mb-1">
-                  LinkedIn Company Page (optional)
+                  LinkedIn Profile URL (optional)
                 </label>
                 <input
                   id="linkedin"
                   type="text"
                   className="input-field"
-                  placeholder="https://linkedin.com/company/yourcompany"
+                  placeholder="https://linkedin.com/in/yourusername"
                   {...registerForm('linkedin')}
+                />
+              </div>
+              
+              <div>
+                <label htmlFor="portfolio" className="block text-sm font-medium mb-1">
+                  Portfolio Website (optional)
+                </label>
+                <input
+                  id="portfolio"
+                  type="text"
+                  className="input-field"
+                  placeholder="https://yourportfolio.com"
+                  {...registerForm('portfolio')}
                 />
               </div>
               
@@ -315,12 +426,12 @@
             
             <button
               type="submit"
-              className={`btn-primary ${step < 2 ? '' : 'w-full'} flex items-center justify-center`}
+              className={`btn-primary ${step < 3 ? '' : 'w-full'} flex items-center justify-center`}
               disabled={isLoading}
             >
               {isLoading ? (
                 <div className="h-5 w-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-              ) : step < 2 ? 'Continue' : 'Create Account'}
+              ) : step < 3 ? 'Continue' : 'Create Account'}
             </button>
           </div>
         </form>
@@ -334,6 +445,6 @@
       </motion.div>
     </div>
   );
-}
+};
 
-export default BusinessRegister
+export default FreelancerRegister;
