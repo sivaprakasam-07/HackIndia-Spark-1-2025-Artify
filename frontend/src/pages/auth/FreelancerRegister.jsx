@@ -11,7 +11,7 @@ const FreelancerRegister = () => {
   const { register: registerUser, oauthLogin } = useAuth();
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false); 
   const [step, setStep] = useState(1);
 
   const { register: registerForm, handleSubmit, formState: { errors }, watch } = useForm();
@@ -42,7 +42,7 @@ const FreelancerRegister = () => {
 
       const result = await registerUser(userData, 'freelancer');
       if (result.success) {
-        navigate('/dashboard');
+        navigate('/dashboard', { replace: true }); // Redirect to dashboard
       }
     } finally {
       setIsLoading(false);
@@ -62,7 +62,7 @@ const FreelancerRegister = () => {
       .then((result) => {
         console.log(result.user);
         setIsLoading(false);
-        navigate('/dashboard');
+        navigate('/dashboard', { replace: true }); // Redirect to dashboard
       })
       .catch((error) => {
         console.error(error);

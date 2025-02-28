@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { FiLinkedin, FiGithub, FiUser, FiMail, FiLock, FiEye, FiEyeOff, FiBriefcase, FiGlobe } from 'react-icons/fi';
 import { useForm } from 'react-hook-form';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { signInWithPopup, GithubAuthProvider, GoogleAuthProvider } from 'firebase/auth';
 import { auth } from '../../firebase';
 
@@ -11,10 +11,12 @@ const BusinessRegister = () => {
   const [showPassword, setShowPassword] = useState(false);
   const { register: registerForm, handleSubmit, formState: { errors } } = useForm();
   const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
 
   const onSubmit = (data) => {
     // Handle form submission
     console.log(data);
+    navigate('/dashboard', { replace: true }); // Redirect to dashboard
   };
 
   const handleOAuthRegister = (provider) => {
@@ -30,6 +32,7 @@ const BusinessRegister = () => {
       .then((result) => {
         console.log(result.user);
         setIsLoading(false);
+        navigate('/dashboard', { replace: true }); // Redirect to dashboard
       })
       .catch((error) => {
         console.error(error);

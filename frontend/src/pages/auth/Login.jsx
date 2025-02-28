@@ -3,7 +3,10 @@ import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { motion } from 'framer-motion'
 import { FiGithub, FiLinkedin, FiMail, FiLock, FiEye, FiEyeOff } from 'react-icons/fi'
+import { FcGoogle } from 'react-icons/fc' // Import Google icon
 import { useAuth } from '../../contexts/AuthContext'
+import { signInWithPopup, GithubAuthProvider, GoogleAuthProvider } from 'firebase/auth';
+import { auth } from '../../firebase';
 
 const Login = () => {
   const { login, oauthLogin } = useAuth()
@@ -16,32 +19,41 @@ const Login = () => {
   const { register, handleSubmit, formState: { errors } } = useForm()
   
   const onSubmit = async (data) => {
-    setIsLoading(true)
+    setIsLoading(true);
     try {
-      const result = await login(data.email, data.password)
+      const result = await login(data.email, data.password);
       if (result.success) {
-        navigate(from, { replace: true })
+        navigate('/dashboard', { replace: true }); // Redirect to dashboard
+      } else {
+        console.error('Login failed:', result.message);
       }
+    } catch (error) {
+      console.error('Error logging in with email:', error);
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
   }
-  
-  const handleOAuthLogin = (provider) => {
-    // In a real implementation, this would redirect to the OAuth provider
-    // For now, we'll just simulate the process
-    console.log(`Logging in with ${provider}`)
-    
-    // Simulate successful OAuth login
-    const mockCode = 'mock_oauth_code'
-    oauthLogin(provider, mockCode)
-      .then(result => {
-        if (result.success) {
-          navigate(from, { replace: true })
-        }
-      })
+
+  const handleOAuthLogin = async (provider) => {
+    setIsLoading(true);
+    let authProvider;
+    if (provider === 'github') {
+      authProvider = new GithubAuthProvider();
+    } else if (provider === 'google') {
+      authProvider = new GoogleAuthProvider();
+    }
+
+    try {
+      const result = await signInWithPopup(auth, authProvider);
+      console.log(result.user);
+      navigate('/dashboard', { replace: true }); // Redirect to dashboard
+    } catch (error) {
+      console.error(`Error logging in with ${provider}:`, error);
+    } finally {
+      setIsLoading(false);
+    }
   }
-  
+
   return (
     <div className="max-w-md mx-auto my-12 px-4">
       <motion.div
@@ -65,7 +77,7 @@ const Login = () => {
             <FiGithub className="h-5 w-5" />
             <span>Continue with GitHub</span>
           </button>
-          
+
           <button
             onClick={() => handleOAuthLogin('linkedin')}
             className="w-full flex items-center justify-center gap-2 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2 hover:bg-gray-50 dark:hover:bg-dark-100 transition-colors"
@@ -73,14 +85,22 @@ const Login = () => {
             <FiLinkedin className="h-5 w-5" />
             <span>Continue with LinkedIn</span>
           </button>
+
+          <button
+            onClick={() => handleOAuthLogin('google')}
+            className="w-full flex items-center justify-center gap-2 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2 hover:bg-gray-50 dark:hover:bg-dark-100 transition-colors"
+          >
+            <FcGoogle className="h-5 w-5" />
+            <span>Continue with Google</span>
+          </button>
         </div>
-        
+
         <div className="flex items-center gap-2 mb-6">
           <div className="flex-grow h-px bg-gray-300 dark:bg-gray-700"></div>
           <span className="text-sm text-gray-500 dark:text-gray-400">or</span>
           <div className="flex-grow h-px bg-gray-300 dark:bg-gray-700"></div>
         </div>
-        
+
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div>
             <label htmlFor="email" className="block text-sm font-medium mb-1">
@@ -106,7 +126,7 @@ const Login = () => {
               <p className="mt-1 text-sm text-red-500">{errors.email.message}</p>
             )}
           </div>
-          
+
           <div>
             <label htmlFor="password" className="block text-sm font-medium mb-1">
               Password
@@ -138,23 +158,7 @@ const Login = () => {
               <p className="mt-1 text-sm text-red-500">{errors.password.message}</p>
             )}
           </div>
-          
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <input
-                id="remember"
-                type="checkbox"
-                className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-              />
-              <label htmlFor="remember" className="ml-2 block text-sm text-gray-600 dark:text-gray-400">
-                Remember me
-              </label>
-            </div>
-            <Link to="/forgot-password" className="text-sm text-primary-600 hover:text-primary-500">
-              Forgot password?
-            </Link>
-          </div>
-          
+
           <button
             type="submit"
             className="btn-primary w-full flex items-center justify-center"
@@ -167,13 +171,6 @@ const Login = () => {
             )}
           </button>
         </form>
-        
-        <p className="mt-6 text-center text-sm text-gray-600 dark:text-gray-400">
-          Don't have an account?{' '}
-          <Link to="/register" className="text-primary-600 hover:text-primary-500 font-medium">
-            Sign up
-          </Link>
-        </p>
       </motion.div>
     </div>
   )

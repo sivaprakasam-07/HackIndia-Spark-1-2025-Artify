@@ -113,24 +113,24 @@ export const AuthProvider = ({ children }) => {
   }
 
   // OAuth login
-  const oauthLogin = async (provider, code) => {
+  const oauthLogin = async (provider) => {
     try {
-      const res = await axios.post(`/auth/${provider}`, { code })
-      const { token, user } = res.data
+      const res = await axios.post(`/auth/${provider}`);
+      const { token, user } = res.data;
       
-      localStorage.setItem('token', token)
-      setToken(token)
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
+      localStorage.setItem('token', token);
+      setToken(token);
+      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       
-      setUser(user)
-      setIsAuthenticated(true)
-      toast.success('Login successful!')
+      setUser(user);
+      setIsAuthenticated(true);
+      toast.success('Login successful!');
       
-      return { success: true, user }
+      return { success: true, user };
     } catch (error) {
-      const message = error.response?.data?.message || `${provider} login failed`
-      toast.error(message)
-      return { success: false, message }
+      const message = error.response?.data?.message || `${provider} login failed`;
+      toast.error(message);
+      return { success: false, message };
     }
   }
 
